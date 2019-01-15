@@ -65,26 +65,41 @@ function getBody (req, onEnd) {
 }
 
 function factory (opts, input, output) {
+	const auth = opts.auth && opts.auth.user && opts.auth.password
+		? 'Basic ' + Buffer.from(`${opts.auth.user}:${opts.auth.password}`).toString('base64')
+		: null;
 	const srv = http.createServer((req, res) => {
+		// Check auth
+		if (auth) {
+			const authHead = req.headers.authorization;
+			if (!authHead || authHead !== auth) {
+				res.setHeader('WWW-Authenticate', `Basic realm="${opts.auth.realm}"`);
+				res.writeHead(401);
+				return res.end();
+			}
+		}
+
 		// Get the path name an remove the preceding slash
 		const name = url.parse(req.url).pathname.slice(1);
 
 		if (req.method === 'GET' && input[name]) {
 			// GET request --> get input value
 			const i = input[name];
-			res.end(i.convert(i.value, i.timestamp));
-		} else if (req.method === 'POST' && output[name]) {
+			return res.end(i.convert(i.value, i.timestamp));
+		}
+
+		if (req.method === 'POST' && output[name]) {
 			// POST request --> write to output
 			const o = output[name];
 			getBody(req, (body) => {
 				o.value = o.convert(body);
 			});
-			res.end();
-		} else {
-			// No input or output found!
-			res.statusCode = 404;
-			res.end();
+			return res.end();
 		}
+
+		// No input or output found!
+		res.writeHead(404);
+		return res.end();
 	});
 	srv.listen({port: opts.port});
 	return () => new Promise((resolve) => srv.close(resolve));

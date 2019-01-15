@@ -16,7 +16,10 @@ Configuration:
    * ```'boolean'```: Convert the body to a boolean.
    * ```(body) => value```: A custom function.
  * ```port```: The port to listen on. *Mandatory*.
-
+ * ```auth```: Optional object for enabling authorization:
+   * ```user```: Username.
+   * ```password```: Password.
+   * ```real```: Real name. Displayed along with the login prompt.
 Example:
 
 ```js

@@ -257,10 +257,81 @@ describe('factory', () => {
 			url: '/test?foo'
 		};
 		const res = {
+			writeHead: jest.fn(),
 			end: jest.fn()
 		};
 		onReq(req, res);
-		expect(res.statusCode).toBe(404);
+		expect(res.writeHead.mock.calls[0][0]).toBe(404);
+		expect(res.end.mock.calls.length).toBe(1);
+	});
+
+	test('send 401 if auth is enabled and no credentials are given', () => {
+		server.factory({
+			auth: {user: 'test', password: 'test', realm: 'jo'}
+		}, {}, {});
+		const onReq = mockHttp.createServer.mock.calls[0][0];
+		const req = {
+			method: 'GET',
+			url: '/test?foo',
+			headers: {}
+		};
+		const res = {
+			writeHead: jest.fn(),
+			setHeader: jest.fn(),
+			end: jest.fn()
+		};
+		onReq(req, res);
+		expect(res.writeHead.mock.calls[0][0]).toBe(401);
+		expect(res.setHeader.mock.calls[0][0]).toMatch('WWW-Authenticate');
+		expect(res.setHeader.mock.calls[0][1]).toMatch('Basic realm="jo"');
+		expect(res.end.mock.calls.length).toBe(1);
+	});
+
+	test('send 401 if auth is enabled and credentials are wrong', () => {
+		const auth = 'Basic ' + Buffer.from('u:wrong').toString('base64');
+		server.factory({
+			auth: {user: 'u', password: 'p', realm: 'jo'}
+		}, {}, {});
+		const onReq = mockHttp.createServer.mock.calls[0][0];
+		const req = {
+			method: 'GET',
+			url: '/test?foo',
+			headers: {
+				authorization: auth
+			}
+		};
+		const res = {
+			writeHead: jest.fn(),
+			setHeader: jest.fn(),
+			end: jest.fn()
+		};
+		onReq(req, res);
+		expect(res.writeHead.mock.calls[0][0]).toBe(401);
+		expect(res.setHeader.mock.calls[0][0]).toMatch('WWW-Authenticate');
+		expect(res.setHeader.mock.calls[0][1]).toMatch('Basic realm="jo"');
+		expect(res.end.mock.calls.length).toBe(1);
+	});
+
+	test('send 404 if auth is okay and no route has been found', () => {
+		const auth = 'Basic ' + Buffer.from('u:p').toString('base64');
+		server.factory({
+			auth: {user: 'u', password: 'p', realm: 'jo'}
+		}, {}, {});
+		const onReq = mockHttp.createServer.mock.calls[0][0];
+		const req = {
+			method: 'GET',
+			url: '/test?foo',
+			headers: {
+				authorization: auth
+			}
+		};
+		const res = {
+			writeHead: jest.fn(),
+			setHeader: jest.fn(),
+			end: jest.fn()
+		};
+		onReq(req, res);
+		expect(res.writeHead.mock.calls[0][0]).toBe(404);
 		expect(res.end.mock.calls.length).toBe(1);
 	});
 });
