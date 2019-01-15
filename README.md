@@ -20,6 +20,7 @@ Configuration:
    * ```user```: Username.
    * ```password```: Password.
    * ```real```: Real name. Displayed along with the login prompt.
+ * ```index```: If set to ```true```, an index of all resources can be retrieved from path '/'.
 Example:
 
 ```js

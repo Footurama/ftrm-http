@@ -334,4 +334,27 @@ describe('factory', () => {
 		expect(res.writeHead.mock.calls[0][0]).toBe(404);
 		expect(res.end.mock.calls.length).toBe(1);
 	});
+
+	test('return index', () => {
+		const input = [
+			{name: 'a/b'}
+		];
+		const output = [
+			{name: 'a/c'},
+			{name: 'a/b'}
+		];
+		server.factory({index: true}, {entries: () => input}, {entries: () => output});
+		const onReq = mockHttp.createServer.mock.calls[0][0];
+		const req = {
+			method: 'GET',
+			url: '/'
+		};
+		const end = jest.fn();
+		onReq(req, { end });
+		expect(end.mock.calls[0][0]).toMatch([
+			'GET a/b',
+			'POST a/b',
+			'POST a/c'
+		].join('\n'));
+	});
 });

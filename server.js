@@ -68,6 +68,18 @@ function factory (opts, input, output) {
 	const auth = opts.auth && opts.auth.user && opts.auth.password
 		? 'Basic ' + Buffer.from(`${opts.auth.user}:${opts.auth.password}`).toString('base64')
 		: null;
+
+	let index;
+	if (opts.index) {
+		const i = input.entries().map((i) => ['GET', i.name]);
+		const o = output.entries().map((o) => ['POST', o.name]);
+		index = i.concat(o).sort((a, b) => {
+			if (a[1] > b[1]) return 1;
+			if (a[1] < b[1]) return -1;
+			return 0;
+		}).map((line) => line.join(' ')).join('\n');
+	}
+
 	const srv = http.createServer((req, res) => {
 		// Check auth
 		if (auth) {
@@ -81,6 +93,10 @@ function factory (opts, input, output) {
 
 		// Get the path name an remove the preceding slash
 		const name = url.parse(req.url).pathname.slice(1);
+
+		if (index && req.method === 'GET' && name === '') {
+			return res.end(index);
+		}
 
 		if (req.method === 'GET' && input[name]) {
 			// GET request --> get input value
